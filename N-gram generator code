@@ -1,0 +1,75 @@
+from nltk.probability import (FreqDist, ConditionalFreqDist, ConditionalProbDist, MLEProbDist, SimpleGoodTuringProbDist, ProbDistI)
+from nltk.util import ngrams
+import random
+import nltk
+from nltk.corpus import brown
+
+def ml_estimator(freqdist):
+    return MLEProbDist(freqdist)
+
+def goodturing_estimator(freqdist):
+    return SimpleGoodTuringProbDist(freqdist)
+    
+class BasicNgram(ConditionalProbDist):
+    def __init__(self, n, words, start_symbol="<$>", end_symbol="</$>", pad_left=True, pad_right=False, estimator=ml_estimator):
+        assert (n > 0)
+        self._n=n
+        self._words=words
+        self._counter=ConditionalFreqDist()
+        self._start_symbol=start_symbol
+        self._end_symbol=end_symbol
+        self._pad_left=pad_left
+        self._pad_right=pad_right
+        self._train()
+        super().__init__(self._counter, estimator)
+        
+        
+    def _train(self):       
+        _ngrams=self.generate_ngrams()        
+        for ngram in _ngrams:
+            context=ngram[0:-1]
+            outcome=ngram[-1]
+            self._counter[context][outcome]+=1
+            
+    def generate_ngrams(self):
+        return ngrams(self._words, self._n, pad_left=self._pad_left, pad_right=self._pad_right, left_pad_symbol=self._start_symbol, right_pad_symbol=self._end_symbol)
+                                                                                                                                                                                                                                                                                                                                                             
+    def contexts(self):
+        return list(self.conditions()) 
+     
+#Using "Brown" corpus of American English. Info: https://www.sketchengine.eu/brown-corpus/
+nltk.download('brown')
+brown_words = []
+for word in brown.words():
+    brown_words.append(word)
+    
+    
+def RandomText(corpus):
+#A function that returns generated texts from the corpus
+    print("Nice to meet you, young experimentator. Ready to generate some nonsense?")
+    input()
+    print("Tell me the size of your n-gram (minimum 2):")
+    n = int(input())
+    if n < 2:
+        print("You tried to trick me?!")
+        n = int(input())
+    print("How many words you wanna see in your text?")
+    #The length of the input minus the number of words which will be added first to the result list further
+    length = int(input()) - (n-1) 
+    ngram = BasicNgram(n, corpus)
+    #Randomly choose an n-gram to start the text with. Type = tuple()
+    first_word = random.choice(ngram.contexts()) 
+    result = [i for i in first_word] #turning the tuple into single strings
+    for i in range(length):
+        word = ngram[tuple(result[-n+1:])].generate() #we call the instance of the ngram.contexts() to generate the next most probable output
+        result.append(word)
+    result = " ".join(result)
+    return(result)
+    
+    
+#call an instance of a class
+random_text = RandomText(brown_words)
+
+random_text
+
+
